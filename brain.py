@@ -122,9 +122,13 @@ class PathIntegrator:
     def on_packet(self, p):
         ds_enc = 0.5 * (p.enc_dL + p.enc_dR)
         ds = ds_enc
-        if self.use_flow_rej and p.flow_ok and abs(ds_enc - p.flow_dx) > C.SLIPREJ_THRESH:
-            ds = p.flow_dx                # 編碼器與光流吵架 → 信看得到地面的那個
-            self.slip_flags += 1
+        if self.use_flow_rej and p.flow_ok:
+            # [藍本變更 #1 / 橋一] 去旋轉:光流裝在轉心外,dx 含 −ω·mount_y 污染;
+            # 用陀螺(封包內)扣回。韌體同款(pi.cpp 的感測預處理第一行)。
+            ds_flow = p.flow_dx + p.gyro_z * C.FLOW_MOUNT_Y * C.DT
+            if abs(ds_enc - ds_flow) > C.SLIPREJ_THRESH:
+                ds = ds_flow              # 編碼器與光流吵架 → 信看得到地面的那個
+                self.slip_flags += 1
         th = self.h.theta
         self.p += ds * np.array([np.cos(th), np.sin(th)])
 
