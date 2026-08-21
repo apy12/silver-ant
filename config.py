@@ -44,6 +44,12 @@ FLOW_SCALE_STD   = 0.03    # 每台安裝高度造成的刻度誤差 σ
 FLOW_NOISE_STD   = 0.0025  # 速度量測白雜訊 σ (m/s)
 FLOW_DROP_RATE   = 0.02    # 表面品質(squal)掉線事件率 (每秒)
 FLOW_DROP_DUR    = (0.2, 0.8)
+# 安裝位置(相對旋轉中心,車體座標;校定常數,地位同 TRACK)
+# 旋轉時感測點速度 = (v − ω·y, ω·x) → dx 通道污染 = −ω·FLOW_MOUNT_Y
+# 前向偏移 x 只污染側向通道(封包未用);側向偏移 y 直接毒 dx。
+# 校定法:smoke_test 第 5 段(原地旋轉,flow_dx/DT 對 gyro 回歸,斜率=−y)
+FLOW_MOUNT_X     = 0.030   # m,佔位:由機構圖回填
+FLOW_MOUNT_Y     = 0.020   # m,佔位:由機構圖/第5段校定回填
 
 # ---- 全景視覺(OV2640 朝天 + 球面鏡,展開 64x48 灰階) ----
 PANO_W, PANO_H   = 64, 48
