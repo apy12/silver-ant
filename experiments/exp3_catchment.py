@@ -18,7 +18,7 @@ class _B: whisk_L = whisk_R = False
 def main():
     rng = np.random.default_rng(0)
     s0 = Sim(seed=0)
-    snap = s0.world.render(*C.HOME, 0.0, 0.0, rng)
+    snap = s0.cam.render(s0.world, *C.HOME, 0.0, 0.0, rng)[0]  # [相容性修補] render 已拆到 PanoCamera,回傳 (img, valid)
     xs = np.linspace(0.25, 2.75, 11)
     ys = np.linspace(0.25, 1.75, 7)
     M = np.full((len(ys), len(xs)), np.nan)
