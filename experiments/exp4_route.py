@@ -76,22 +76,31 @@ def main():
     ax.plot(*END, marker='*', ms=16, color='goldenrod', mec='k', ls='none')
     cols = ['#1f77b4', '#2ca02c', '#c0392b']
     stats = []
+    # [協定升級 2026-08] 舊版每起點 n=1;驗屍發現 −17cm+20° 的「成功」是
+    # 幸運抽籤(新舊堆疊 5 seeds 皆僅 1/5)。改為每起點 5 seeds,
+    # 圖上畫「中位表現」那一次,統計報 到達率 + 偏差中位。
     for (st, hd, lab), col in zip(starts, cols):
-        traj, ok, tt = recall(views, st, hd, seed=int(st[1] * 1000))
-        seg = np.cumsum(np.r_[0, np.hypot(*np.diff(traj, axis=0).T)])
-        m = seg > 0.30                              # 收斂後才計偏差
-        dev = np.array([np.min(np.hypot(*(route - p).T)) for p in traj[m]])
-        stats.append((lab, ok, dev.mean(), dev.max(), tt))
+        runs = []
+        for k in range(5):
+            traj, ok, tt = recall(views, st, hd, seed=int(st[1] * 1000) + k * 100)
+            seg = np.cumsum(np.r_[0, np.hypot(*np.diff(traj, axis=0).T)])
+            m = seg > 0.30
+            dev = np.array([np.min(np.hypot(*(route - p).T)) for p in traj[m]])
+            runs.append((traj, ok, tt, dev))
+        n_ok = sum(r[1] for r in runs)
+        means = [r[3].mean() for r in runs]
+        traj, ok, tt, dev = runs[int(np.argsort(means)[len(runs) // 2])]
+        stats.append((lab, n_ok, np.median(means), max(r[3].max() for r in runs), tt))
         ax.plot(traj[:, 0], traj[:, 1], color=col, lw=1.6,
-                label=f'{lab}: mean dev {dev.mean()*100:.1f} cm'
-                      f'{", reached" if ok else ", TIMEOUT"}')
+                label=f'{lab}: reached {n_ok}/5, median dev {np.median(means)*100:.1f} cm')
         ax.plot(*st, marker='o', color=col, ms=7, mec='k')
     ax.set_xlim(0, C.ARENA_W); ax.set_ylim(0, C.ARENA_H); ax.set_aspect('equal')
     ax.legend(loc='upper left', fontsize=9)
-    ax.set_title('Familiarity-based route following (perfect-memory, 64x48 panoramas @ 8 cm spacing)')
+    ax.set_title('Familiarity route following (perfect-memory, n=5 seeds/start; '
+                 'median-performing run shown)')
     fig.tight_layout(); fig.savefig(os.path.join(OUT, 'fig4_route.png'), dpi=140)
-    for lab, ok, dm, dx, tt in stats:
-        print(f'{lab:22s} 到達={ok}  平均偏差 {dm*100:5.1f}cm  最大 {dx*100:5.1f}cm  耗時 {tt:.0f}s')
+    for lab, n_ok, dm, dx, tt in stats:
+        print(f'{lab:22s} 到達 {n_ok}/5  偏差中位 {dm*100:5.1f}cm  最大 {dx*100:5.1f}cm')
 
 if __name__ == '__main__':
     main()
